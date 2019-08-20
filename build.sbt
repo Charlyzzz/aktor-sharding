@@ -36,7 +36,9 @@ lazy val tracer = (project in file("tracer"))
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-http-xml" % akkaHttpVersion,
-      "com.typesafe.akka" %% "akka-stream" % akkaVersion
+      "com.typesafe.akka" %% "akka-stream" % akkaVersion,
+      "javax.inject" % "javax.inject" % "1",
+      "com.google.inject" % "guice" % "4.0"
     )
   )
 

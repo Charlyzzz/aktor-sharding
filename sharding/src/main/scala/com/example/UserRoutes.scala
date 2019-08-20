@@ -2,8 +2,6 @@ package com.example
 
 import akka.NotUsed
 import akka.actor.ActorSystem
-import akka.actor.typed.receptionist.Receptionist
-import akka.actor.typed.scaladsl.adapter._
 import akka.event.Logging
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.ws.{ Message, TextMessage }
@@ -15,6 +13,7 @@ import akka.stream.{ Materializer, OverflowStrategy }
 import akka.util.Timeout
 
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration._
 
 trait UserRoutes extends SprayJsonSupport {
 
@@ -31,9 +30,14 @@ trait UserRoutes extends SprayJsonSupport {
   def greeter: Flow[Message, Message, Any] = Flow[Message].collectType[TextMessage]
 
   def keepAlive: Flow[Any, Message, NotUsed] = {
+    val (queue, source) = Source.queue[Message](Integer.MAX_VALUE, OverflowStrategy.fail).preMaterialize()
+    
     val (webSocketOut, source) = Source.actorRef[Message](Int.MaxValue, OverflowStrategy.fail).preMaterialize()
-    val userActor = system.spawnAnonymous(actors.user(webSocketOut))
-    system.toTyped.receptionist ! Receptionist.register(actors.users, userActor)
+    //val userActor = system.spawnAnonymous(actors.user(webSocketOut))
+    //system.toTyped.receptionist ! Receptionist.register(actors.users, userActor)
+    system.scheduler.schedule(0.seconds, 1.seconds, new Runnable {
+      override def run(): Unit = queue.offer(TextMessage("Hola!"))
+    })
     Flow.fromSinkAndSource(Sink.ignore, source)
   }
 

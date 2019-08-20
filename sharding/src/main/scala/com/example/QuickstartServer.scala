@@ -5,16 +5,17 @@ import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Listing
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.{ ActorRef, Behavior }
-import akka.actor.{ Actor, ActorSystem, Props }
+import akka.actor.typed.{ActorRef, Behavior}
+import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
+import com.google.inject.Guice
 
-import scala.concurrent.duration.{ Duration, _ }
-import scala.concurrent.{ Await, Future }
-import scala.util.{ Failure, Success }
+import scala.concurrent.duration.{Duration, _}
+import scala.concurrent.{Await, Future}
+import scala.util.{Failure, Success}
 
 sealed trait Broadcast
 
@@ -25,11 +26,12 @@ case object StartBroadcast extends Broadcast
 object QuickstartServer extends App with UserRoutes {
 
   implicit val system: ActorSystem = ActorSystem("aktors-sharding")
+  val b = system.actorOf(Props[B], "test-b")
+  private val injector = Guice.createInjector(Module(b))
+  val a = injector.getInstance(classOf[akka.actor.ActorRef])
   implicit val materializer: ActorMaterializer = ActorMaterializer()
-  override lazy val timeout = Timeout(5.seconds)
 
-  new Foo().foo
-  system.actorOf(Props[B])
+  override lazy val timeout = Timeout(5.seconds)
 
   lazy val routes: Route = userRoutes
 
@@ -73,6 +75,8 @@ object QuickstartServer extends App with UserRoutes {
   Await.result(system.whenTerminated, Duration.Inf)
 }
 
-class B extends Actor {
-  override def receive: Receive = Actor.emptyBehavior
+class B extends Actor with ActorLogging {
+  override def receive: Receive = {
+    case x => log.info(s"Msg{$x}")
+  }
 }
