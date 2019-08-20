@@ -28,6 +28,7 @@ object QuickstartServer extends App with UserRoutes {
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   override lazy val timeout = Timeout(5.seconds)
 
+  new Foo().foo
   system.actorOf(Props[B])
 
   lazy val routes: Route = userRoutes

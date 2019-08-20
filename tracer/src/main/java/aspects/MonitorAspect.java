@@ -18,4 +18,9 @@ public class MonitorAspect {
   public void beforeStop(ActorCell cell) {
     System.out.println("stop");
   }
+
+  @Before(value = "execution (* com.example.Foo.foo())")
+  public void beforeStop2() {
+    System.out.println("Foo");
+  }
 }
