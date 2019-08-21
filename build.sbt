@@ -47,6 +47,7 @@ lazy val sharding = (project in file("sharding"))
   .settings(buildSettings)
   .settings(assemblySettings: _*)
   .settings(
+    Revolver.enableDebugging(port = 5050, suspend = true),
     aspectjBinaries in Aspectj ++= (products in Compile in tracer).value,
 
     // replace the original akka-actor jar with the instrumented classes in runtime

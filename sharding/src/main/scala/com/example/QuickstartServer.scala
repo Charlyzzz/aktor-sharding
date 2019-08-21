@@ -1,57 +1,32 @@
 package com.example
 
-import akka.NotUsed
-import akka.actor.typed.receptionist.Receptionist
-import akka.actor.typed.receptionist.Receptionist.Listing
-import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.{ActorRef, Behavior}
-import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
+import akka.actor.{ Actor, ActorLogging, ActorSystem, Props }
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.ws.{ Message, TextMessage }
 import akka.http.scaladsl.server.Route
-import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.{ Source, SourceQueueWithComplete }
+import akka.stream.{ ActorMaterializer, OverflowStrategy }
 import akka.util.Timeout
 import com.google.inject.Guice
 
-import scala.concurrent.duration.{Duration, _}
-import scala.concurrent.{Await, Future}
-import scala.util.{Failure, Success}
-
-sealed trait Broadcast
-
-case class FoundUsers(users: Listing) extends Broadcast
-
-case object StartBroadcast extends Broadcast
+import scala.concurrent.duration.{ Duration, _ }
+import scala.concurrent.{ Await, Future }
+import scala.util.{ Failure, Success }
 
 object QuickstartServer extends App with UserRoutes {
 
   implicit val system: ActorSystem = ActorSystem("aktors-sharding")
-  val b = system.actorOf(Props[B], "test-b")
-  private val injector = Guice.createInjector(Module(b))
-  val a = injector.getInstance(classOf[akka.actor.ActorRef])
   implicit val materializer: ActorMaterializer = ActorMaterializer()
+  val (broadcasterQueue, wsSource) = Source.queue[Message](Integer.MAX_VALUE, OverflowStrategy.fail).preMaterialize()
+
+  val systemInterceptor = system.actorOf(ActorSystemInterceptor.props(broadcasterQueue), ActorSystemInterceptor.name)
+  Guice.createInjector(GuiceModule(systemInterceptor))
 
   override lazy val timeout = Timeout(5.seconds)
 
+  system.scheduler.schedule(0.seconds, 1.second)(broadcasterQueue.offer(TextMessage("Hola!")))
+
   lazy val routes: Route = userRoutes
-
-  val broadcast: Behavior[NotUsed] = Behaviors.setup[Any](ctx => {
-    val receptionistAdapter: ActorRef[Listing] = ctx.messageAdapter(FoundUsers)
-    Behaviors.withTimers(timer => {
-      timer.startPeriodicTimer(null, StartBroadcast, 3.seconds)
-      Behaviors.receiveMessage {
-        case StartBroadcast =>
-          ctx.system.receptionist ! Receptionist.find(actors.users, receptionistAdapter)
-          //println(ctx.system.printTree)
-          Behaviors.same
-        case FoundUsers(actors.users.Listing(users)) =>
-          users.foreach(_ ! A)
-          Behaviors.same
-      }
-    })
-  }).narrow
-
-  system.spawn(broadcast, "broadcaster")
 
   val serverBinding: Future[Http.ServerBinding] = Http().bindAndHandle(routes, "localhost", 8080)
 
@@ -69,14 +44,22 @@ object QuickstartServer extends App with UserRoutes {
     Await.result(system.whenTerminated, 30.seconds)
   }
 
-  val logger = system.spawnAnonymous(Behaviors.logMessages(Behaviors.ignore))
-  system.eventStream.subscribe(logger.toUntyped, classOf[Any])
-
   Await.result(system.whenTerminated, Duration.Inf)
 }
 
-class B extends Actor with ActorLogging {
+class ActorSystemInterceptor(val broadcasterQueue: SourceQueueWithComplete[Message]) extends Actor with ActorLogging {
   override def receive: Receive = {
-    case x => log.info(s"Msg{$x}")
+    case x: String =>
+      if (!x.contains(ActorSystemInterceptor.name)) {
+        log.info(x)
+        broadcasterQueue.offer(TextMessage(x))
+      }
   }
+}
+
+object ActorSystemInterceptor {
+  val name: String = "systemInterceptor"
+
+  def props(broadcasterQueue: SourceQueueWithComplete[Message]): Props =
+    Props(new ActorSystemInterceptor(broadcasterQueue))
 }

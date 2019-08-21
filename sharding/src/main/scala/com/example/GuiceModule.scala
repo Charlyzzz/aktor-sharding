@@ -5,9 +5,9 @@ import aspects.MonitorAspect
 import com.google.inject.AbstractModule
 import org.aspectj.lang.Aspects
 
-case class Module(actorRef: ActorRef) extends AbstractModule {
+case class GuiceModule(actorSystemInterceptor: ActorRef) extends AbstractModule {
   override def configure(): Unit = {
-    bind(classOf[ActorRef]).toInstance(actorRef)
+    bind(classOf[ActorRef]).toInstance(actorSystemInterceptor)
     requestInjection(Aspects.aspectOf(classOf[MonitorAspect]))
   }
 }
