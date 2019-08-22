@@ -33,7 +33,11 @@ trait UserRoutes extends SprayJsonSupport {
   }
 
   lazy val userRoutes: Route =
-    path("socket") {
-      handleWebSocketMessages(keepAlive)
-    }
+    concat(
+      path("socket") {
+        handleWebSocketMessages(keepAlive)
+      },
+      pathSingleSlash {
+        getFromResource("index.html")
+      })
 }
