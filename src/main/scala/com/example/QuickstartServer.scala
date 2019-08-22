@@ -24,7 +24,7 @@ object QuickstartServer extends App with UserRoutes {
 
   override lazy val timeout = Timeout(5.seconds)
 
-  system.scheduler.schedule(0.seconds, 1.second)(broadcasterQueue.offer(TextMessage("Hola!")))
+  //system.scheduler.schedule(0.seconds, 1.second)(broadcasterQueue.offer(TextMessage("Hola!")))
 
   lazy val routes: Route = userRoutes
 
