@@ -9,7 +9,7 @@ lazy val aspectjLintConfig = {
   aspectjLintProperties in Aspectj += "adviceDidNotMatch = ignore"
 }
 
-lazy val tracing = (project in file("tracing"))
+lazy val tracing = project
     .enablePlugins(SbtAspectj)
     .disablePlugins(RevolverPlugin)
     .settings(buildSettings)
@@ -44,6 +44,7 @@ lazy val root = (project in file("."))
       }
     )
     .settings(
+      exportJars := true,
       name := "sharding",
       organization := "com.example",
       scalaVersion := "2.12.8"

@@ -1,16 +1,18 @@
 package com.example
 
-import akka.actor.{ Actor, ActorLogging, ActorSystem, Props }
+import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.ws.{ Message, TextMessage }
+import akka.http.scaladsl.model.ws.Message
 import akka.http.scaladsl.server.Route
-import akka.stream.scaladsl.{ Source, SourceQueueWithComplete }
+import akka.http.scaladsl.settings.ServerSettings
+import akka.stream.scaladsl.Source
 import akka.stream.{ ActorMaterializer, OverflowStrategy }
 import akka.util.Timeout
 import com.google.inject.Guice
 
 import scala.concurrent.duration.{ Duration, _ }
 import scala.concurrent.{ Await, Future }
+
 import scala.util.{ Failure, Success }
 
 object QuickstartServer extends App with UserRoutes {
@@ -24,11 +26,13 @@ object QuickstartServer extends App with UserRoutes {
 
   override lazy val timeout = Timeout(5.seconds)
 
-  //system.scheduler.schedule(0.seconds, 1.second)(broadcasterQueue.offer(TextMessage("Hola!")))
-
   lazy val routes: Route = userRoutes
 
-  val serverBinding: Future[Http.ServerBinding] = Http().bindAndHandle(routes, "localhost", 8080)
+  private val defaultSettings = ServerSettings(system)
+  private val wsSettings = defaultSettings
+    .websocketSettings.withPeriodicKeepAliveMaxIdle(1.second)
+  val customSettings = defaultSettings.withWebsocketSettings(wsSettings)
+  val serverBinding: Future[Http.ServerBinding] = Http().bindAndHandle(routes, "localhost", 8080, settings = customSettings)
 
   serverBinding.onComplete {
     case Success(bound) =>
@@ -45,21 +49,4 @@ object QuickstartServer extends App with UserRoutes {
   }
 
   Await.result(system.whenTerminated, Duration.Inf)
-}
-
-class ActorSystemInterceptor(val broadcasterQueue: SourceQueueWithComplete[Message]) extends Actor with ActorLogging {
-  override def receive: Receive = {
-    case x: String =>
-      if (!x.contains(ActorSystemInterceptor.name)) {
-        log.info(x)
-        broadcasterQueue.offer(TextMessage(x))
-      }
-  }
-}
-
-object ActorSystemInterceptor {
-  val name: String = "systemInterceptor"
-
-  def props(broadcasterQueue: SourceQueueWithComplete[Message]): Props =
-    Props(new ActorSystemInterceptor(broadcasterQueue))
 }

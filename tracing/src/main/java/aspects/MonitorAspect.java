@@ -1,7 +1,6 @@
 package aspects;
 
 import akka.actor.ActorCell;
-import akka.actor.ActorPath;
 import akka.actor.ActorRef;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
@@ -22,29 +21,28 @@ public class MonitorAspect {
 
   @AfterReturning(pointcut = "execution (* akka.actor.ActorRefFactory.actorOf(..))", returning = "ref", argNames = "ref")
   public void actorSpawned(ActorRef ref) {
-    forwardUserActors(ref);
+    String up = Events.Up(ref.path());
+    forwardUserActorsEvent(up);
   }
 
-  private void forwardUserActors(ActorRef ref) {
-    ActorPath actorPath = ref.path();
-    String path = actorPath.toString();
-    if (path.contains("/user/"))
-      tell(actorPath);
+  private void forwardUserActorsEvent(String event) {
+    if (event.contains("/user/"))
+      tell(event);
   }
 
-  private void tell(ActorPath path) {
+  private void tell(String event) {
     if (f != null) {
       pendingPaths.forEach(s -> f.tell(s, ActorRef.noSender()));
       pendingPaths.clear();
-      f.tell(path.toString(), ActorRef.noSender());
+      f.tell(event, ActorRef.noSender());
     } else {
-      String pathString = path.toString();
-      pendingPaths.add(pathString);
+      pendingPaths.add(event);
     }
   }
 
   @Before(value = "execution (* akka.actor.ActorCell.stop()) && this(cell)", argNames = "cell")
   public void beforeStop(ActorCell cell) {
-    forwardUserActors(cell.actor().self());
+    String down = Events.Down(cell.actor().self().path());
+    forwardUserActorsEvent(down);
   }
 }
