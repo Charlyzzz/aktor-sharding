@@ -1,4 +1,6 @@
 import com.lightbend.sbt.SbtAspectj.aspectjUseInstrumentedClasses
+import com.typesafe.sbt.SbtMultiJvm.MultiJvmKeys.MultiJvm
+import com.typesafe.sbt.SbtMultiJvm.multiJvmSettings
 import sbtassembly.AssemblyPlugin._
 
 lazy val akkaHttpVersion = "10.1.9"
@@ -26,6 +28,9 @@ lazy val tracing = project
         "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
         "com.typesafe.akka" %% "akka-http-xml" % akkaHttpVersion,
         "com.typesafe.akka" %% "akka-stream" % akkaVersion,
+        "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
+        "com.typesafe.akka" %% "akka-cluster-typed" % akkaVersion,
+        "com.typesafe.akka" %% "akka-cluster-sharding" % akkaVersion,
         "javax.inject" % "javax.inject" % "1",
         "com.google.inject" % "guice" % "4.0"
       )
@@ -63,4 +68,8 @@ lazy val root = (project in file("."))
     .settings(Revolver.enableDebugging(port = 5050, suspend = false))
     .aggregate(tracing)
     .dependsOn(tracing)
+    .enablePlugins(MultiJvmPlugin)
+    .settings(multiJvmSettings: _*)
+    .configs(MultiJvm)
+
 

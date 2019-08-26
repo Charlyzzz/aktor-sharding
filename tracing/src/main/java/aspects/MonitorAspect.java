@@ -21,12 +21,12 @@ public class MonitorAspect {
 
   @AfterReturning(pointcut = "execution (* akka.actor.ActorRefFactory.actorOf(..))", returning = "ref", argNames = "ref")
   public void actorSpawned(ActorRef ref) {
-    String up = Events.Up(ref.path());
+    String up = Events.Up(ref);
     forwardUserActorsEvent(up);
   }
 
   private void forwardUserActorsEvent(String event) {
-    if (event.contains("/user/"))
+    if (event.contains("/user/") || event.contains("system/sharding/Device"))
       tell(event);
   }
 
@@ -42,7 +42,7 @@ public class MonitorAspect {
 
   @Before(value = "execution (* akka.actor.ActorCell.stop()) && this(cell)", argNames = "cell")
   public void beforeStop(ActorCell cell) {
-    String down = Events.Down(cell.actor().self().path());
+    String down = Events.Down(cell.actor().self());
     forwardUserActorsEvent(down);
   }
 }

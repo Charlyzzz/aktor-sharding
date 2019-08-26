@@ -1,14 +1,19 @@
 package aspects;
 
-import akka.actor.ActorPath;
+import akka.actor.ActorRef;
+import akka.serialization.Serialization;
 
 public class Events {
 
-  static public String Up(ActorPath path) {
-    return "UP|" + path;
+  static public String Up(ActorRef ref) {
+    return "UP|" + pathWithAddress(ref);
   }
 
-  static public String Down(ActorPath path) {
-    return "DN|" + path;
+  static public String Down(ActorRef ref) {
+    return "DN|" + pathWithAddress(ref);
+  }
+
+  private static String pathWithAddress(ActorRef ref) {
+    return Serialization.serializedActorPath(ref);
   }
 }

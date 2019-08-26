@@ -1,6 +1,6 @@
 package com.example
 
-import akka.actor.ActorSystem
+import akka.actor.{ Actor, ActorSystem, Props }
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.Message
 import akka.http.scaladsl.server.Route
@@ -9,12 +9,14 @@ import akka.stream.scaladsl.Source
 import akka.stream.{ ActorMaterializer, OverflowStrategy }
 import akka.util.Timeout
 import com.google.inject.Guice
+import com.typesafe.config.ConfigFactory
 
-import scala.concurrent.duration.{ Duration, _ }
+import scala.concurrent.duration._
 import scala.concurrent.{ Await, Future }
 import scala.util.{ Failure, Success }
 
-object QuickstartServer extends UserRoutes {
+object ShardingApp extends App with UserRoutes {
+  startup(Seq("2551", "2552", "0"))
 
   implicit val system: ActorSystem = ActorSystem("aktors-sharding")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
@@ -48,4 +50,26 @@ object QuickstartServer extends UserRoutes {
   }
 
   Await.result(system.whenTerminated, Duration.Inf)
+
+  def startup(ports: Seq[String]): Unit = {
+    // In a production application you wouldn't typically start multiple ActorSystem instances in the
+    // same JVM, here we do it to easily demonstrate these ActorSytems (which would be in separate JVM's)
+    // talking to each other.
+    ports foreach {
+      port =>
+        // Override the configuration of the port
+        val config = ConfigFactory.parseString("akka.remote.artery.canonical.port=" + port)
+          .withFallback(ConfigFactory.load())
+
+        // Create an Akka system
+        val system = ActorSystem("ShardingSystem", config)
+        system.actorOf(Props(new Actor {
+          override def receive: Receive = Actor.ignoringBehavior
+        }))
+        // Create an actor that starts the sharding and sends random messages
+        system.actorOf(Props[Devices])
+    }
+  }
+
 }
+
