@@ -5,16 +5,10 @@ import akka.http.scaladsl.model.ws
 import akka.http.scaladsl.model.ws.Message
 import akka.stream.scaladsl.SourceQueueWithComplete
 import com.example.event.Event
-import spray.json.DefaultJsonProtocol
-
-object MyJsonProtocol extends DefaultJsonProtocol {
-  implicit val eventFormat = jsonFormat2(Event.apply)
-}
 
 class ActorSystemInterceptor(val broadcasterQueue: SourceQueueWithComplete[Message]) extends Actor with ActorLogging {
 
   override def receive: Receive = {
-
     case x: String =>
       if (isNotSelfEvent(x)) {
         x.splitAt(3) match {
@@ -27,8 +21,9 @@ class ActorSystemInterceptor(val broadcasterQueue: SourceQueueWithComplete[Messa
   }
 
   private def push(event: Event) = {
-    import MyJsonProtocol._
+    import json.Protocol._
     import spray.json._
+
     val eventAsJsonString = event.toJson.toString
     broadcasterQueue.offer(ws.TextMessage(eventAsJsonString))
   }

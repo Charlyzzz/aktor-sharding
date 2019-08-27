@@ -49,7 +49,7 @@ lazy val root = (project in file("."))
       }
     )
     .settings(
-      exportJars := true,
+      fork in run := true,
       name := "sharding",
       organization := "com.example",
       scalaVersion := "2.12.8"
