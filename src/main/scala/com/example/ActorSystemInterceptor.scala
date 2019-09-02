@@ -1,10 +1,11 @@
 package com.example
 
 import akka.actor.{ Actor, ActorLogging, Props }
-import akka.http.scaladsl.model.ws
-import akka.http.scaladsl.model.ws.Message
+import akka.http.scaladsl.model.ws.{ Message, TextMessage }
 import akka.stream.scaladsl.SourceQueueWithComplete
 import com.example.event.Event
+
+import scala.util.Try
 
 class ActorSystemInterceptor(val broadcasterQueue: SourceQueueWithComplete[Message]) extends Actor with ActorLogging {
 
@@ -12,8 +13,8 @@ class ActorSystemInterceptor(val broadcasterQueue: SourceQueueWithComplete[Messa
     case x: String =>
       if (isNotSelfEvent(x)) {
         x.splitAt(3) match {
-          case ("UP|", address) => push(Event.up(address))
-          case ("DN|", address) => push(Event.down(address))
+          case ("UP|", address) => Try(push(Event.up(address)))
+          case ("DN|", address) => Try(push(Event.down(address)))
           case invalidEvent =>
             log.warning(s"invalid event $invalidEvent")
         }
@@ -25,7 +26,7 @@ class ActorSystemInterceptor(val broadcasterQueue: SourceQueueWithComplete[Messa
     import spray.json._
 
     val eventAsJsonString = event.toJson.toString
-    broadcasterQueue.offer(ws.TextMessage(eventAsJsonString))
+    broadcasterQueue.offer(TextMessage(eventAsJsonString))
   }
 
   private def isNotSelfEvent(x: String) = !x.contains(ActorSystemInterceptor.name)

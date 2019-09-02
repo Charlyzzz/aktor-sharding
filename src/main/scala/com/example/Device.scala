@@ -19,7 +19,7 @@ object Device {
 
 class Device extends Actor with ActorLogging {
 
-  context.setReceiveTimeout(1.seconds)
+  context.setReceiveTimeout()
 
   override def receive: Receive = counting(Nil)
 
