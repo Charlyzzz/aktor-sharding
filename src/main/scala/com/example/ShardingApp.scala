@@ -1,21 +1,29 @@
 package com.example
 
-import akka.actor.{ Actor, ActorSystem, Props }
+import akka.actor.{Actor, ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.Message
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.settings.ServerSettings
+import akka.management.cluster.bootstrap.ClusterBootstrap
+import akka.management.scaladsl.AkkaManagement
 import akka.stream.scaladsl.Source
-import akka.stream.{ ActorMaterializer, OverflowStrategy }
+import akka.stream.{ActorMaterializer, OverflowStrategy}
 import akka.util.Timeout
 import com.google.inject.Guice
 import com.typesafe.config.ConfigFactory
 
 import scala.concurrent.duration._
-import scala.concurrent.{ Await, Future }
-import scala.util.{ Failure, Success }
+import scala.concurrent.{Await, Future}
+import scala.util.{Failure, Success}
 
 object ShardingApp extends App with UserRoutes {
+
+  AkkaManagement(system).start()
+
+  // Starting the bootstrap process needs to be done explicitly
+  ClusterBootstrap(system).start()
+
   startup(Seq("2551", "2552", "0"))
 
   implicit val system: ActorSystem = ActorSystem("aktors-sharding")

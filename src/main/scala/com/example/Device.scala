@@ -19,7 +19,7 @@ object Device {
 
 class Device extends Actor with ActorLogging {
 
-  context.setReceiveTimeout()
+  context.setReceiveTimeout(15.seconds)
 
   override def receive: Receive = counting(Nil)
 
@@ -28,5 +28,8 @@ class Device extends Actor with ActorLogging {
       val temperatures = temp :: values
       log.info(s"Recording temperature $temp for device $id, average is ${temperatures.sum / temperatures.size} after ${temperatures.size} readings");
       context.become(counting(temperatures))
+    case ReceiveTimeout =>
+      log.info(self.path.name)
+      context.stop(self)
   }
 }

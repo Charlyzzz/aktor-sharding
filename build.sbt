@@ -1,6 +1,4 @@
 import com.lightbend.sbt.SbtAspectj.aspectjUseInstrumentedClasses
-import com.typesafe.sbt.SbtMultiJvm.MultiJvmKeys.MultiJvm
-import com.typesafe.sbt.SbtMultiJvm.multiJvmSettings
 import sbtassembly.AssemblyPlugin._
 
 lazy val akkaHttpVersion = "10.1.9"
@@ -12,64 +10,61 @@ lazy val aspectjLintConfig = {
 }
 
 lazy val tracing = project
-    .enablePlugins(SbtAspectj)
-    .disablePlugins(RevolverPlugin)
-    .settings(buildSettings)
-    .settings(aspectjLintConfig)
-    .settings(
-      aspectjInputs in Aspectj += (aspectjCompiledClasses in Aspectj).value,
-      // add akka-actor as an aspectj input (find it in the update report)
-      aspectjInputs in Aspectj ++= update.value.matching(moduleFilter(organization = "com.typesafe.akka", name = "akka-actor*")),
-      // replace regular products with compiled aspects
-      products in Compile := (products in Aspectj).value,
-      libraryDependencies ++= Seq(
-        "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
-        "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
-        "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
-        "com.typesafe.akka" %% "akka-http-xml" % akkaHttpVersion,
-        "com.typesafe.akka" %% "akka-stream" % akkaVersion,
-        "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
-        "com.typesafe.akka" %% "akka-cluster-typed" % akkaVersion,
-        "com.typesafe.akka" %% "akka-cluster-sharding" % akkaVersion,
-        "javax.inject" % "javax.inject" % "1",
-        "com.google.inject" % "guice" % "4.0"
-      )
+  .enablePlugins(SbtAspectj)
+  .disablePlugins(RevolverPlugin)
+  .settings(buildSettings)
+  .settings(aspectjLintConfig)
+  .settings(
+    aspectjInputs in Aspectj += (aspectjCompiledClasses in Aspectj).value,
+    // add akka-actor as an aspectj input (find it in the update report)
+    aspectjInputs in Aspectj ++= update.value.matching(moduleFilter(organization = "com.typesafe.akka", name = "akka-actor*")),
+    // replace regular products with compiled aspects
+    products in Compile := (products in Aspectj).value,
+    libraryDependencies ++= Seq(
+      "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
+      "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
+      "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
+      "com.typesafe.akka" %% "akka-http-xml" % akkaHttpVersion,
+      "com.typesafe.akka" %% "akka-stream" % akkaVersion,
+      "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
+      "com.typesafe.akka" %% "akka-cluster-typed" % akkaVersion,
+      "com.typesafe.akka" %% "akka-cluster-sharding" % akkaVersion,
+      "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % "1.0.3",
+      "com.typesafe.akka" %% "akka-discovery" % "2.5.23",
+      "com.lightbend.akka.management" %% "akka-management" % "1.0.3",
+      "javax.inject" % "javax.inject" % "1",
+      "com.google.inject" % "guice" % "4.0"
     )
+  )
 
 
 lazy val root = (project in file("."))
-    .enablePlugins(SbtAspectj, AssemblyPlugin)
-    .settings(buildSettings)
-    .settings(assemblySettings: _*)
-    .settings(
-      assemblyMergeStrategy in assembly := {
-        case PathList("META-INF", _*) => MergeStrategy.discard
-        case "reference.conf" => MergeStrategy.concat
-        case _ => MergeStrategy.first
-      }
-    )
-    .settings(
-      fork in run := true,
-      name := "sharding",
-      organization := "com.example",
-      scalaVersion := "2.12.8"
-    )
-    .settings(aspectjLintConfig)
-    .settings(
-      aspectjBinaries in Aspectj ++= (products in Compile in tracing).value,
-      // replace the original akka-actor jar with the instrumented classes in runtime
-      fullClasspath in Runtime := aspectjUseInstrumentedClasses(Runtime).value,
-      // weave this project's classes
-      aspectjInputs in Aspectj += (aspectjCompiledClasses in Aspectj).value,
-      products in Compile := (products in Aspectj).value,
-      products in Runtime := (products in Compile).value,
-    )
-    .settings(aggregate in assembly := false)
-    .settings(Revolver.enableDebugging(port = 5050, suspend = false))
-    .aggregate(tracing)
-    .dependsOn(tracing)
-    .enablePlugins(MultiJvmPlugin)
-    .settings(multiJvmSettings: _*)
-    .configs(MultiJvm)
-
-
+  .enablePlugins(SbtAspectj, AssemblyPlugin)
+  .settings(buildSettings)
+  .settings(assemblySettings: _*)
+  .settings(
+    assemblyMergeStrategy in assembly := {
+      case PathList("META-INF", _*) => MergeStrategy.discard
+      case "reference.conf" => MergeStrategy.concat
+      case _ => MergeStrategy.first
+    }
+  )
+  .settings(
+    name := "sharding",
+    organization := "com.example",
+    scalaVersion := "2.12.8"
+  )
+  .settings(aspectjLintConfig)
+  .settings(
+    aspectjBinaries in Aspectj ++= (products in Compile in tracing).value,
+    // replace the original akka-actor jar with the instrumented classes in runtime
+    fullClasspath in Runtime := aspectjUseInstrumentedClasses(Runtime).value,
+    // weave this project's classes
+    aspectjInputs in Aspectj += (aspectjCompiledClasses in Aspectj).value,
+    products in Compile := (products in Aspectj).value,
+    products in Runtime := (products in Compile).value,
+  )
+  .settings(aggregate in assembly := false)
+  .settings(Revolver.enableDebugging(port = 5050, suspend = false))
+  .aggregate(tracing)
+  .dependsOn(tracing)

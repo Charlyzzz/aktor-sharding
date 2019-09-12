@@ -2,9 +2,11 @@ package com.example
 
 import akka.actor.{ Actor, ActorLogging, Props }
 import akka.http.scaladsl.model.ws.{ Message, TextMessage }
+import akka.stream.QueueOfferResult
 import akka.stream.scaladsl.SourceQueueWithComplete
 import com.example.event.Event
 
+import scala.concurrent.Future
 import scala.util.Try
 
 class ActorSystemInterceptor(val broadcasterQueue: SourceQueueWithComplete[Message]) extends Actor with ActorLogging {
@@ -21,7 +23,7 @@ class ActorSystemInterceptor(val broadcasterQueue: SourceQueueWithComplete[Messa
       }
   }
 
-  private def push(event: Event) = {
+  private def push(event: Event): Future[QueueOfferResult] = {
     import json.Protocol._
     import spray.json._
 
