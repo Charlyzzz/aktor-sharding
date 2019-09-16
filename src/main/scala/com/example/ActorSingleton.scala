@@ -1,3 +1,8 @@
 package com.example
 
-case class ActorSingleton()
+import akka.actor.Actor
+
+class ActorSingleton extends Actor {
+  override def receive: Receive = ???
+}
+

@@ -8,7 +8,6 @@ import akka.http.scaladsl.settings.ServerSettings
 import akka.stream.scaladsl.Source
 import akka.stream.{ ActorMaterializer, OverflowStrategy }
 import akka.util.Timeout
-import com.google.inject.Guice
 
 import scala.concurrent.duration.{ Duration, _ }
 import scala.concurrent.{ Await, Future }
@@ -19,9 +18,6 @@ object QuickstartServer extends UserRoutes {
   implicit val system: ActorSystem = ActorSystem("aktors-sharding")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   val (broadcasterQueue, wsSource) = Source.queue[Message](Integer.MAX_VALUE, OverflowStrategy.fail).preMaterialize()
-
-  val systemInterceptor = system.actorOf(ActorSystemInterceptor.props(broadcasterQueue), ActorSystemInterceptor.name)
-  Guice.createInjector(GuiceModule(systemInterceptor))
 
   override lazy val timeout = Timeout(5.seconds)
 
